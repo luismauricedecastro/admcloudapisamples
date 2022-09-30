@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace csharpsample
@@ -78,6 +79,153 @@ namespace csharpsample
             var customer_list = JsonSerializer.Deserialize<List<Customer>>(data_json_string);
 
             return customer_list;
+        }
+
+        public async static Task<List<PriceLevel>> GetPriceLevelsAsync()
+        {
+            //Url to call
+            var url = $"https://api.admcloud.net/api/PriceLevels?skip=0&appid={APPID}&company={DB}&role={ROLE}";
+
+            //Concatenate user and password: (BASIC AUTHENTICATION)
+            //https://en.wikipedia.org/wiki/Basic_access_authentication
+            var auth_string = $"{EMAIL}:{PASSWORD}";
+
+            //Get Bytes
+            var base_64_string = System.Text.ASCIIEncoding.ASCII.GetBytes(auth_string);
+
+            //Convert to Base 64 string
+            var header = Convert.ToBase64String(base_64_string);
+
+            var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", header);
+
+            //Call Service
+            var response = await httpClient.GetAsync(url);
+
+            //Check Status Code
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new ApplicationException(message: $"Error calling service. Status Code: {response.StatusCode}");
+
+            //Get Response Content
+            var apiResponseString = await response.Content.ReadAsStringAsync();
+
+            //Deserialize Json
+            var api_returned_msg = JsonSerializer.Deserialize<ApiResponse>(apiResponseString);
+
+            if (api_returned_msg == null)
+                throw new ApplicationException(message: "Deserialization error");
+
+            //Check for errors
+            if (!api_returned_msg.success)
+                throw new ApplicationException(api_returned_msg.message);
+
+            //Deserialize Data
+            string data_json_string = api_returned_msg.data.ToString();
+            var list = JsonSerializer.Deserialize<List<PriceLevel>>(data_json_string);
+
+            return list;
+        }
+
+        public async static Task<List<Currency>> GetCurrenciesAsync()
+        {
+            //Url to call
+            var url = $"https://api.admcloud.net/api/Currencies?skip=0&appid={APPID}&company={DB}&role={ROLE}";
+
+            //Concatenate user and password: (BASIC AUTHENTICATION)
+            //https://en.wikipedia.org/wiki/Basic_access_authentication
+            var auth_string = $"{EMAIL}:{PASSWORD}";
+
+            //Get Bytes
+            var base_64_string = System.Text.ASCIIEncoding.ASCII.GetBytes(auth_string);
+
+            //Convert to Base 64 string
+            var header = Convert.ToBase64String(base_64_string);
+
+            var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", header);
+
+            //Call Service
+            var response = await httpClient.GetAsync(url);
+
+            //Check Status Code
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new ApplicationException(message: $"Error calling service. Status Code: {response.StatusCode}");
+
+            //Get Response Content
+            var apiResponseString = await response.Content.ReadAsStringAsync();
+
+            //Deserialize Json
+            var api_returned_msg = JsonSerializer.Deserialize<ApiResponse>(apiResponseString);
+
+            if (api_returned_msg == null)
+                throw new ApplicationException(message: "Deserialization error");
+
+            //Check for errors
+            if (!api_returned_msg.success)
+                throw new ApplicationException(api_returned_msg.message);
+
+            //Deserialize Data
+            string data_json_string = api_returned_msg.data.ToString();
+            var list = JsonSerializer.Deserialize<List<Currency>>(data_json_string);
+
+            return list;
+        }
+
+        public async static Task CreateCustomerService()
+        {
+            var price_levels = await GetPriceLevelsAsync();
+            var currencies = await GetCurrenciesAsync();
+
+            var new_customer = new Customer
+            {
+                Name = "Test Customer",
+                IsCustomer = true,
+                PriceLevelID = price_levels.FirstOrDefault()?.ID,
+                CurrencyID = currencies.FirstOrDefault()?.ID,
+            };
+
+            await CallCreateCustomerService(new_customer);
+        }
+
+        public async static Task CallCreateCustomerService(Customer new_customer)
+        {
+            //Url to call
+            var url = $"https://api.admcloud.net/api/Customers?appid={APPID}&company={DB}&role={ROLE}";
+
+            //Concatenate user and password: (BASIC AUTHENTICATION)
+            //https://en.wikipedia.org/wiki/Basic_access_authentication
+            var auth_string = $"{EMAIL}:{PASSWORD}";
+
+            //Get Bytes
+            var base_64_string = System.Text.ASCIIEncoding.ASCII.GetBytes(auth_string);
+
+            //Convert to Base 64 string
+            var header = Convert.ToBase64String(base_64_string);
+
+            var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", header);
+
+            //Call Service
+            var response = await httpClient.PostAsJsonAsync(url, new_customer);
+
+            //Check Status Code
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new ApplicationException(message: $"Error calling service. Status Code: {response.StatusCode}");
+
+            //Get Response Content
+            var apiResponseString = await response.Content.ReadAsStringAsync();
+
+            //Deserialize Json
+            var api_returned_msg = JsonSerializer.Deserialize<ApiResponse>(apiResponseString);
+
+            if (api_returned_msg == null)
+                throw new ApplicationException(message: "Deserialization error");
+
+            //Check for errors
+            if (!api_returned_msg.success)
+                throw new ApplicationException(api_returned_msg.message);
+
+            System.Console.WriteLine("Customer created!");
         }
     }
 }
